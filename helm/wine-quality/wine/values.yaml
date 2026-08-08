@@ -1,0 +1,26 @@
+replicaCount: 3
+
+app:
+  name: wine-app
+
+image:
+  repository: joehaddy/wine-quality-image
+  tag: latest
+  pullPolicy: IfNotPresent
+
+container:
+  name: wine-container
+  port: 8501
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 8501
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
