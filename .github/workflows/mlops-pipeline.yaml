@@ -1,7 +1,5 @@
 # ==========================================================
-# Workflow Name
-#
-# This workflow demonstrates a complete MLOps CI/CD pipeline.
+# MLOps Wine CI/CD Pipeline
 #
 # Pipeline Flow
 #
@@ -11,7 +9,10 @@
 # Checkout Source Code
 #       │
 #       ▼
-# Install Python Dependencies
+# Install Python
+#       │
+#       ▼
+# Install Dependencies
 #       │
 #       ▼
 # Run Unit Tests
@@ -20,10 +21,10 @@
 # Train Machine Learning Model
 #       │
 #       ▼
-# Log Metrics to MLflow
+# Log Experiment Information
 #       │
 #       ▼
-# Register Model
+# Login to Docker Hub
 #       │
 #       ▼
 # Build Docker Image
@@ -32,108 +33,134 @@
 # Push Docker Image to Docker Hub
 #       │
 #       ▼
-# Load Image into Kind Cluster
+# Verify joe-cluster
+#       │
+#       ▼
+# Configure kubectl
+#       │
+#       ▼
+# Load Docker Image into joe-cluster
 #       │
 #       ▼
 # Deploy with Helm
 #       │
 #       ▼
-# Verify Kubernetes Deployment
+# Wait for Deployment
+#       │
+#       ▼
+# Verify Kubernetes Resources
 # ==========================================================
 
 name: MLOps Wine CI/CD Pipeline
 
+
 # ==========================================================
-# Trigger
+# TRIGGER
 #
-# Execute the workflow whenever code is pushed to main.
+# Run the workflow whenever code is pushed to main.
 # ==========================================================
 
 on:
+
   push:
+
     branches:
       - main
 
+
 # ==========================================================
-# Environment Variables
-#
-# Central location for reusable values.
+# ENVIRONMENT VARIABLES
 # ==========================================================
 
 env:
+
+  # Python version used by the pipeline
   PYTHON_VERSION: "3.12"
 
+  # Docker image name
   IMAGE_NAME: wine-streamlit-app
 
+  # Docker image tag
   IMAGE_TAG: latest
 
+  # Helm release name
   HELM_RELEASE: wine-app
 
+  # Helm chart location
   HELM_CHART: ./helm/wine
 
+  # IMPORTANT:
+  # This is the Kind cluster we are maintaining.
+  KIND_CLUSTER: joe-cluster
+
+
 # ==========================================================
-# Jobs
-#
-# The workflow contains two jobs.
-#
-# Job 1
-#   Build, Test, Train, Build Docker Image
-#
-# Job 2
-#   Deploy to Kubernetes
+# JOBS
 # ==========================================================
 
 jobs:
 
-############################################################
-#
-# JOB 1
-#
-# Build • Test • Train • Docker
-#
-############################################################
+
+  # ========================================================
+  # JOB 1
+  #
+  # Build
+  # Test
+  # Train
+  # Docker
+  #
+  # ========================================================
 
   build-train:
 
     runs-on: self-hosted
 
+
     steps:
 
-############################################################
-# Step 1
-# Checkout Repository
-############################################################
+
+      # ======================================================
+      # STEP 1
+      # Checkout Repository
+      # ======================================================
 
       - name: Checkout Source Code
+
         uses: actions/checkout@v4
 
-############################################################
-# Step 2
-# Install Python
-############################################################
+
+      # ======================================================
+      # STEP 2
+      # Setup Python
+      # ======================================================
 
       - name: Setup Python
+
         uses: actions/setup-python@v5
 
         with:
+
           python-version: ${{ env.PYTHON_VERSION }}
 
-############################################################
-# Step 3
-# Install Dependencies
-############################################################
+
+      # ======================================================
+      # STEP 3
+      # Install Python Dependencies
+      # ======================================================
 
       - name: Install Python Dependencies
+
         run: |
 
           python -m pip install --upgrade pip
 
           pip install -r requirements.txt
 
-############################################################
-# Step 4
-# Run Unit Tests
-############################################################
+
+      # ======================================================
+      # STEP 4
+      # Run Unit Tests
+      # ======================================================
 
       - name: Run Unit Tests
 
@@ -141,10 +168,13 @@ jobs:
 
           pytest
 
-############################################################
-# Step 5
-# Train Machine Learning Model
-############################################################
+
+      # ======================================================
+      # STEP 5
+      # Train Machine Learning Model
+      #
+      # main.py is the entry point for the ML pipeline.
+      # ======================================================
 
       - name: Train Machine Learning Model
 
@@ -152,19 +182,14 @@ jobs:
 
           python src/main.py
 
-############################################################
-# Step 6
-# Log Experiment to MLflow
-#
-# train.py should already contain:
-#
-# mlflow.start_run()
-# mlflow.log_param()
-# mlflow.log_metric()
-# mlflow.log_artifact()
-# mlflow.sklearn.log_model()
-#
-############################################################
+
+      # ======================================================
+      # STEP 6
+      # Log Experiment Information
+      #
+      # The actual MLflow logging should happen inside
+      # the Python training code.
+      # ======================================================
 
       - name: Log Metrics to MLflow
 
@@ -172,15 +197,16 @@ jobs:
 
           echo "Training information logged to MLflow."
 
-############################################################
-# Step 7
-# Register Model
-#
-# Example:
-#
-# models:/wine-model/Production
-#
-############################################################
+
+      # ======================================================
+      # STEP 7
+      # Register Model
+      #
+      # This is currently a placeholder.
+      #
+      # Actual MLflow Model Registry registration can
+      # be added after the basic pipeline is working.
+      # ======================================================
 
       - name: Register Model
 
@@ -188,10 +214,11 @@ jobs:
 
           echo "Register model in MLflow Registry."
 
-############################################################
-# Step 8
-# Login to Docker Hub
-############################################################
+
+      # ======================================================
+      # STEP 8
+      # Login to Docker Hub
+      # ======================================================
 
       - name: Login to Docker Hub
 
@@ -203,38 +230,54 @@ jobs:
 
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-############################################################
-# Step 9
-# Build Docker Image
-############################################################
+
+      # ======================================================
+      # STEP 9
+      # Build Docker Image
+      #
+      # Dockerfile is located inside:
+      #
+      # app/Dockerfile
+      #
+      # The build context remains the project root.
+      # ======================================================
 
       - name: Build Docker Image
 
         run: |
 
           docker build \
-          -f app/Dockerfile \
-          -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+            -f app/Dockerfile \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
 
-############################################################
-# Step 10
-# Push Docker Image
-############################################################
+
+      # ======================================================
+      # STEP 10
+      # Push Docker Image to Docker Hub
+      # ======================================================
 
       - name: Push Docker Image
 
         run: |
 
           docker push \
-          ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
-############################################################
-#
-# JOB 2
-#
-# Kubernetes Deployment
-#
-############################################################
+
+  # ========================================================
+  # JOB 2
+  #
+  # Kubernetes Deployment
+  #
+  # IMPORTANT:
+  #
+  # We are NOT creating another Kind cluster.
+  #
+  # We are using:
+  #
+  #     joe-cluster
+  #
+  # ========================================================
 
   deploy:
 
@@ -242,119 +285,357 @@ jobs:
 
     runs-on: self-hosted
 
+
     steps:
 
-############################################################
-# Step 11
-# Checkout Repository
-############################################################
+
+      # ======================================================
+      # STEP 11
+      # Checkout Repository
+      # ======================================================
 
       - name: Checkout Repository
 
         uses: actions/checkout@v4
 
-############################################################
-# Step 12
-# Verify Environment
-############################################################
 
-      - name: Verify Environment
+      # ======================================================
+      # STEP 12
+      # Verify Docker
+      # ======================================================
+
+      - name: Verify Docker
 
         run: |
 
-          echo "Docker"
+          echo "======================================"
+
+          echo "Docker Version"
+
+          echo "======================================"
 
           docker version
 
-          echo "Kind"
 
-          kind get clusters
+      # ======================================================
+      # STEP 13
+      # Verify Kind Installation
+      # ======================================================
 
-          echo "kubectl"
-
-          kubectl get nodes
-
-          echo "Helm"
-
-          helm version
-
-############################################################
-# Step 13
-# Load Docker Image into Kind
-#
-# This makes the locally-built image available to the
-# Kubernetes nodes inside the Kind cluster.
-############################################################
-
-      - name: Load Image into Kind
+      - name: Verify Kind
 
         run: |
 
-          kind load docker-image \
-          ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          echo "======================================"
 
-############################################################
-# Step 14
-# Deploy with Helm
-#
-# If the release exists:
-#     Upgrade
-#
-# Otherwise:
-#     Install
-############################################################
+          echo "Kind Version"
+
+          echo "======================================"
+
+          kind version
+
+          echo ""
+
+          echo "======================================"
+
+          echo "Available Kind Clusters"
+
+          echo "======================================"
+
+          kind get clusters
+
+
+      # ======================================================
+      # STEP 14
+      # Verify joe-cluster
+      #
+      # This is the important section.
+      #
+      # We explicitly check that joe-cluster exists.
+      # ======================================================
+
+      - name: Verify joe-cluster
+
+        run: |
+
+          echo "======================================"
+
+          echo "Checking joe-cluster"
+
+          echo "======================================"
+
+          kind get clusters
+
+          echo ""
+
+          echo "Checking for joe-cluster..."
+
+          kind get clusters | grep -x "${{ env.KIND_CLUSTER }}"
+
+
+      # ======================================================
+      # STEP 15
+      # Configure kubectl
+      #
+      # Export the kubeconfig for joe-cluster.
+      #
+      # Kind creates the context:
+      #
+      # kind-joe-cluster
+      # ======================================================
+
+      - name: Configure kubectl for joe-cluster
+
+        run: |
+
+          echo "Exporting kubeconfig..."
+
+          kind export kubeconfig \
+            --name ${{ env.KIND_CLUSTER }}
+
+
+          echo ""
+
+          echo "Current Kubernetes Context:"
+
+          kubectl config current-context
+
+
+          echo ""
+
+          echo "Switching to joe-cluster..."
+
+          kubectl config use-context \
+            kind-${{ env.KIND_CLUSTER }}
+
+
+      # ======================================================
+      # STEP 16
+      # Verify Kubernetes Cluster
+      #
+      # This confirms that joe-cluster's Kubernetes API
+      # server is accessible.
+      # ======================================================
+
+      - name: Verify Kubernetes Cluster
+
+        run: |
+
+          echo "======================================"
+
+          echo "Kubernetes Context"
+
+          echo "======================================"
+
+          kubectl config current-context
+
+
+          echo ""
+
+          echo "======================================"
+
+          echo "Kubernetes Nodes"
+
+          echo "======================================"
+
+          kubectl get nodes -o wide
+
+
+          echo ""
+
+          echo "======================================"
+
+          echo "Cluster Information"
+
+          echo "======================================"
+
+          kubectl cluster-info
+
+
+      # ======================================================
+      # STEP 17
+      # Load Docker Image into joe-cluster
+      #
+      # This loads the Docker image directly into the
+      # Kind node.
+      #
+      # Kubernetes can then use the local image without
+      # pulling it again from Docker Hub.
+      # ======================================================
+
+      - name: Load Image into joe-cluster
+
+        run: |
+
+          echo "Loading Docker image into joe-cluster..."
+
+          kind load docker-image \
+            --name ${{ env.KIND_CLUSTER }} \
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+
+      # ======================================================
+      # STEP 18
+      # Verify Docker Image
+      #
+      # Display the image that will be deployed.
+      # ======================================================
+
+      - name: Verify Docker Image
+
+        run: |
+
+          echo "Docker image:"
+
+          echo "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+
+
+      # ======================================================
+      # STEP 19
+      # Verify Helm
+      # ======================================================
+
+      - name: Verify Helm
+
+        run: |
+
+          echo "======================================"
+
+          echo "Helm Version"
+
+          echo "======================================"
+
+          helm version
+
+
+      # ======================================================
+      # STEP 20
+      # Deploy Application with Helm
+      #
+      # If release doesn't exist:
+      #
+      #     helm install
+      #
+      # If release exists:
+      #
+      #     helm upgrade
+      #
+      # upgrade --install handles both cases.
+      # ======================================================
 
       - name: Deploy Application with Helm
 
         run: |
 
           helm upgrade --install \
-          ${{ env.HELM_RELEASE }} \
-          ${{ env.HELM_CHART }}
+            ${{ env.HELM_RELEASE }} \
+            ${{ env.HELM_CHART }}
 
-############################################################
-# Step 15
-# Wait for Kubernetes Deployment
-############################################################
+
+      # ======================================================
+      # STEP 21
+      # Wait for Kubernetes Deployment
+      # ======================================================
 
       - name: Wait for Deployment
 
         run: |
 
-          kubectl rollout status deployment/wine-app --timeout=180s
+          kubectl rollout status \
+            deployment/wine-app \
+            --timeout=180s
 
-############################################################
-# Step 16
-# Verify Kubernetes Deployment
-############################################################
 
-      - name: Verify Kubernetes Resources
+      # ======================================================
+      # STEP 22
+      # Verify Pods
+      # ======================================================
+
+      - name: Verify Pods
 
         run: |
 
+          echo "======================================"
+
           echo "Pods"
+
+          echo "======================================"
 
           kubectl get pods -o wide
 
+
+      # ======================================================
+      # STEP 23
+      # Verify Services
+      # ======================================================
+
+      - name: Verify Services
+
+        run: |
+
+          echo "======================================"
+
           echo "Services"
+
+          echo "======================================"
 
           kubectl get svc
 
+
+      # ======================================================
+      # STEP 24
+      # Verify Deployments
+      # ======================================================
+
+      - name: Verify Deployments
+
+        run: |
+
+          echo "======================================"
+
           echo "Deployments"
+
+          echo "======================================"
 
           kubectl get deployments
 
-          echo "Describe Deployment"
+
+      # ======================================================
+      # STEP 25
+      # Describe Deployment
+      # ======================================================
+
+      - name: Describe Deployment
+
+        run: |
 
           kubectl describe deployment wine-app
 
-############################################################
-# Step 17
-# Pipeline Completed
-############################################################
+
+      # ======================================================
+      # STEP 26
+      # Pipeline Completed
+      # ======================================================
 
       - name: Pipeline Completed Successfully
 
         run: |
 
-          echo "Application deployed successfully."
+          echo "======================================"
+
+          echo "MLOps Pipeline Completed Successfully"
+
+          echo "======================================"
+
+          echo "Docker Image:"
+          echo "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+
+          echo ""
+
+          echo "Kind Cluster:"
+          echo "${{ env.KIND_CLUSTER }}"
+
+          echo ""
+
+          echo "Helm Release:"
+          echo "${{ env.HELM_RELEASE }}"
