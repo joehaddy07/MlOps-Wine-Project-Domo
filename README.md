@@ -76,3 +76,4 @@ wine-quality-mlops/
 │
 └── .gitignore
 
+# The directies and files structure of this project.
