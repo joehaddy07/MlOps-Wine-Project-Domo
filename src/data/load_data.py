@@ -1,7 +1,10 @@
 import pandas as pd
 
 
-def load_dataset(file_path):
+DEFAULT_DATASET_PATH = "data/raw/wine.csv"
+
+
+def load_dataset(file_path=DEFAULT_DATASET_PATH):
     """
     Load the wine quality dataset.
 
