@@ -50,7 +50,7 @@ from src.mlflow.tracking import (
 # CONFIGURATION
 # ============================================================
 
-DATASET_PATH = "data/raw/wine.csv"
+wine_dataset = load_dataset(DATASET_PATH)
 
 TEST_SIZE = 0.20
 

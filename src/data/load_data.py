@@ -1,61 +1,28 @@
-# ============================================================
-# IMPORT LIBRARIES
-# ============================================================
-
-# Path handling
-from pathlib import Path
-
-# Data manipulation
 import pandas as pd
 
-# ============================================================
-# DATASET LOCATION
-# ============================================================
 
-# Get the root directory of the project.
-# __file__ refers to this file (load_data.py).
-# parents[2] moves up to the project root folder.
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-# Build the full path to the dataset.
-DATASET_PATH = PROJECT_ROOT / "data" / "raw" / "wine.csv"
-
-# ============================================================
-# LOAD DATASET FUNCTION
-# ============================================================
-
-def load_dataset():
+def load_dataset(file_path):
     """
-    Load the Wine Quality dataset.
+    Load the wine quality dataset.
+
+    Parameters
+    ----------
+    file_path : str
+        Path to the CSV dataset.
 
     Returns
     -------
     pandas.DataFrame
-        The loaded wine dataset.
+        Loaded wine dataset.
     """
 
-    print("\nLoading dataset...")
-    print(f"Dataset location: {DATASET_PATH}")
+    print(f"Loading dataset from: {file_path}")
 
-    # Read the CSV file
-    wine_dataset = pd.read_csv(DATASET_PATH)
+    dataset = pd.read_csv(file_path)
 
-    # Display basic information
-    print("\nDataset Shape")
-    print("---------------------------")
-    print(wine_dataset.shape)
+    if dataset.empty:
+        raise ValueError("Dataset is empty.")
 
-    print("\nFirst Five Rows")
-    print("---------------------------")
-    print(wine_dataset.head())
+    print(f"Dataset loaded successfully: {dataset.shape}")
 
-    print("\nMissing Values")
-    print("---------------------------")
-    print(wine_dataset.isnull().sum())
-
-    print("\nDataset Statistics")
-    print("---------------------------")
-    print(wine_dataset.describe())
-
-    # Return the dataset so other modules can use it
-    return wine_dataset
+    return dataset
