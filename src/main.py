@@ -249,7 +249,7 @@ def main():
 
 
         # ----------------------------------------------------
-        # Classification Report
+        # CLASSIFICATION REPORT
         # ----------------------------------------------------
 
         classification_report_file = results.get(
@@ -272,15 +272,55 @@ def main():
                 classification_report_file
             ):
 
-                mlflow.log_artifact(
-                    classification_report_file,
-                    artifact_path="reports"
+                print(
+                    "Attempting to log classification report..."
                 )
 
-                print(
-                    "Classification report "
-                    "logged successfully."
-                )
+                try:
+
+                    mlflow.log_artifact(
+                        classification_report_file,
+                        artifact_path="reports"
+                    )
+
+                    print(
+                        "Classification report "
+                        "logged successfully."
+                    )
+
+                except Exception as e:
+
+                    print(
+                        "\nMLflow artifact logging FAILED!"
+                    )
+
+                    print(
+                        f"Exception type: "
+                        f"{type(e).__name__}"
+                    )
+
+                    print(
+                        f"Exception message: "
+                        f"{e}"
+                    )
+
+                    print(
+                        "\nMLflow Tracking URI:"
+                    )
+
+                    print(
+                        mlflow.get_tracking_uri()
+                    )
+
+                    print(
+                        "\nMLflow Run ID:"
+                    )
+
+                    print(
+                        run_id
+                    )
+
+                    raise
 
             else:
 
@@ -291,7 +331,7 @@ def main():
 
 
         # ----------------------------------------------------
-        # Confusion Matrix
+        # CONFUSION MATRIX
         # ----------------------------------------------------
 
         confusion_matrix_file = results.get(
@@ -314,15 +354,40 @@ def main():
                 confusion_matrix_file
             ):
 
-                mlflow.log_artifact(
-                    confusion_matrix_file,
-                    artifact_path="plots"
+                print(
+                    "Attempting to log confusion matrix..."
                 )
 
-                print(
-                    "Confusion matrix "
-                    "logged successfully."
-                )
+                try:
+
+                    mlflow.log_artifact(
+                        confusion_matrix_file,
+                        artifact_path="plots"
+                    )
+
+                    print(
+                        "Confusion matrix "
+                        "logged successfully."
+                    )
+
+                except Exception as e:
+
+                    print(
+                        "\nMLflow confusion matrix "
+                        "logging FAILED!"
+                    )
+
+                    print(
+                        f"Exception type: "
+                        f"{type(e).__name__}"
+                    )
+
+                    print(
+                        f"Exception message: "
+                        f"{e}"
+                    )
+
+                    raise
 
             else:
 
@@ -333,7 +398,7 @@ def main():
 
 
         # ----------------------------------------------------
-        # Other Plots
+        # OTHER PLOTS
         # ----------------------------------------------------
 
         plots = results.get(
@@ -348,20 +413,50 @@ def main():
         for plot in plots:
 
             print(
-                f"Checking plot: {plot}"
+                f"\nChecking plot: {plot}"
             )
 
             if os.path.exists(plot):
 
-                mlflow.log_artifact(
-                    plot,
-                    artifact_path="plots"
-                )
-
                 print(
-                    f"Successfully logged: "
+                    f"Attempting to log plot: "
                     f"{plot}"
                 )
+
+                try:
+
+                    mlflow.log_artifact(
+                        plot,
+                        artifact_path="plots"
+                    )
+
+                    print(
+                        f"Successfully logged: "
+                        f"{plot}"
+                    )
+
+                except Exception as e:
+
+                    print(
+                        "\nMLflow plot artifact "
+                        "logging FAILED!"
+                    )
+
+                    print(
+                        f"Plot: {plot}"
+                    )
+
+                    print(
+                        f"Exception type: "
+                        f"{type(e).__name__}"
+                    )
+
+                    print(
+                        f"Exception message: "
+                        f"{e}"
+                    )
+
+                    raise
 
             else:
 
@@ -372,7 +467,7 @@ def main():
 
 
         print(
-            "All artifacts processed successfully."
+            "\nAll artifacts processed successfully."
         )
 
 
@@ -384,18 +479,54 @@ def main():
             "\nRegistering model with MLflow..."
         )
 
-        model_info = register_model(
-            model
-        )
+        try:
 
-        print(
-            "\nModel registered successfully."
-        )
+            model_info = register_model(
+                model
+            )
 
-        print(
-            f"Model URI: "
-            f"{model_info.model_uri}"
-        )
+            print(
+                "\nModel registered successfully."
+            )
+
+            print(
+                f"Model URI: "
+                f"{model_info.model_uri}"
+            )
+
+        except Exception as e:
+
+            print(
+                "\nMLflow model registration FAILED!"
+            )
+
+            print(
+                f"Exception type: "
+                f"{type(e).__name__}"
+            )
+
+            print(
+                f"Exception message: "
+                f"{e}"
+            )
+
+            print(
+                "\nMLflow Tracking URI:"
+            )
+
+            print(
+                mlflow.get_tracking_uri()
+            )
+
+            print(
+                "\nMLflow Run ID:"
+            )
+
+            print(
+                run_id
+            )
+
+            raise
 
 
         # ====================================================
