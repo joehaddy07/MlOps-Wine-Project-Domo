@@ -115,7 +115,7 @@ def main():
 
         print("\n[5/8] Preprocessing dataset...")
 
-        X_train, X_test, Y_train, Y_test = preprocess_data(
+        x_train, x_test, y_train, y_test = preprocess_data(
             wine_dataset,
             test_size=TEST_SIZE,
             random_state=RANDOM_STATE
@@ -147,7 +147,8 @@ def main():
         results = evaluate_model(
             model,
             X_test,
-            Y_test
+            Y_test,
+            wine_dataset
         )
 
         accuracy = results["accuracy"]
