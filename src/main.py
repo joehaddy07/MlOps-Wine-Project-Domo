@@ -127,12 +127,22 @@ def main():
         # ====================================================
         # 6. TRAIN MODEL
         # ====================================================
+        # ========================================================
+        #6. TRAIN MODEL
+        # ========================================================
 
         print("\n[6/8] Training model...")
 
+        print(f"X_train shape: {x_train.shape}")
+        print(f"y_train shape: {y_train.shape}")
+        print(f"X_test shape: {x_test.shape}")
+        print(f"y_test shape: {y_test.shape}")
+
+        print("Starting Random Forest training...")
+
         model = train_model(
-            X_train,
-            Y_train
+         x_train,
+         y_train
         )
 
         print("Model training completed.")
@@ -146,8 +156,8 @@ def main():
 
         results = evaluate_model(
             model,
-            X_test,
-            Y_test,
+            x_test,
+            y_test,
             wine_dataset
         )
 
