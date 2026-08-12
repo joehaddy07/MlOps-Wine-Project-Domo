@@ -1,10 +1,8 @@
-
 # ============================================================
 # WINE QUALITY MLOPS PIPELINE
 # ============================================================
 
 import os
-
 import mlflow
 
 from src.data.load_data import load_dataset
@@ -17,7 +15,6 @@ from src.mlflow.tracking import (
     log_dataset_information,
     log_training_parameters,
     log_metrics,
-    log_artifacts,
     register_model,
 )
 
@@ -53,11 +50,15 @@ def main():
 
     configure_mlflow()
 
-    print("MLflow Tracking URI:")
-    print(mlflow.get_tracking_uri())
+    print(
+        f"MLflow Tracking URI: "
+        f"{mlflow.get_tracking_uri()}"
+    )
 
-    print("MLflow Experiment:")
-    print("Wine_Quality_Predictions")
+    print(
+        "MLflow Experiment: "
+        "Wine_Quality_Predictions"
+    )
 
 
     # ========================================================
@@ -66,16 +67,24 @@ def main():
 
     print("\n[2/8] Loading dataset...")
 
-    print(f"Loading dataset from: {os.path.abspath(DATASET_PATH)}")
+    print(
+        f"Loading dataset from: "
+        f"{os.path.abspath(DATASET_PATH)}"
+    )
 
-    wine_dataset = load_dataset()
+    wine_dataset = load_dataset(
+        DATASET_PATH
+    )
 
     print(
         f"Dataset loaded successfully: "
         f"{wine_dataset.shape}"
     )
 
-    print(f"Dataset shape: {wine_dataset.shape}")
+    print(
+        f"Dataset shape: "
+        f"{wine_dataset.shape}"
+    )
 
 
     # ========================================================
@@ -88,11 +97,12 @@ def main():
         run_name="Wine_Quality_RandomForest"
     ):
 
+        run_id = mlflow.active_run().info.run_id
+
         print("MLflow run started.")
 
         print(
-            f"Run ID: "
-            f"{mlflow.active_run().info.run_id}"
+            f"Run ID: {run_id}"
         )
 
 
@@ -100,20 +110,26 @@ def main():
         # 4. LOG DATASET INFORMATION
         # ====================================================
 
-        print("\n[4/8] Logging dataset information...")
+        print(
+            "\n[4/8] Logging dataset information..."
+        )
 
         log_dataset_information(
             wine_dataset
         )
 
-        print("Dataset information logged.")
+        print(
+            "Dataset information logged."
+        )
 
 
         # ====================================================
         # 5. PREPROCESS DATA
         # ====================================================
 
-        print("\n[5/8] Preprocessing dataset...")
+        print(
+            "\n[5/8] Preprocessing dataset..."
+        )
 
         x_train, x_test, y_train, y_test = preprocess_data(
             wine_dataset,
@@ -121,38 +137,56 @@ def main():
             random_state=RANDOM_STATE
         )
 
-        print("Preprocessing completed.")
+        print(
+            "Preprocessing completed."
+        )
+
+        print(
+            f"X_train shape: {x_train.shape}"
+        )
+
+        print(
+            f"X_test shape: {x_test.shape}"
+        )
+
+        print(
+            f"y_train shape: {y_train.shape}"
+        )
+
+        print(
+            f"y_test shape: {y_test.shape}"
+        )
 
 
         # ====================================================
         # 6. TRAIN MODEL
         # ====================================================
-        # ========================================================
-        #6. TRAIN MODEL
-        # ========================================================
 
-        print("\n[6/8] Training model...")
-
-        print(f"X_train shape: {x_train.shape}")
-        print(f"y_train shape: {y_train.shape}")
-        print(f"X_test shape: {x_test.shape}")
-        print(f"y_test shape: {y_test.shape}")
-
-        print("Starting Random Forest training...")
-
-        model = train_model(
-         x_train,
-         y_train
+        print(
+            "\n[6/8] Training model..."
         )
 
-        print("Model training completed.")
+        print(
+            "Starting Random Forest training..."
+        )
+
+        model = train_model(
+            x_train,
+            y_train
+        )
+
+        print(
+            "Model training completed."
+        )
 
 
         # ====================================================
         # 7. EVALUATE MODEL
         # ====================================================
 
-        print("\n[7/8] Evaluating model...")
+        print(
+            "\n[7/8] Evaluating model..."
+        )
 
         results = evaluate_model(
             model,
@@ -164,7 +198,8 @@ def main():
         accuracy = results["accuracy"]
 
         print(
-            f"Model accuracy: {accuracy:.4f}"
+            f"Model accuracy: "
+            f"{accuracy:.4f}"
         )
 
 
@@ -172,7 +207,9 @@ def main():
         # LOG TRAINING PARAMETERS
         # ====================================================
 
-        print("\nLogging training parameters...")
+        print(
+            "\nLogging training parameters..."
+        )
 
         log_training_parameters(
             test_size=TEST_SIZE,
@@ -180,65 +217,180 @@ def main():
             n_estimators=N_ESTIMATORS
         )
 
+        print(
+            "Training parameters logged."
+        )
+
 
         # ====================================================
         # LOG METRICS
         # ====================================================
 
-        print("Logging model metrics...")
+        print(
+            "Logging model metrics..."
+        )
 
         log_metrics(
             accuracy=accuracy
         )
 
+        print(
+            "Model metrics logged."
+        )
+
 
         # ====================================================
-        # LOG ARTIFACTS
+        # 8. LOG ARTIFACTS
         # ====================================================
 
-        print("Logging artifacts...")
+        print(
+            "\n[8/8] Logging artifacts..."
+        )
 
-        if "classification_report_file" in results:
+
+        # ----------------------------------------------------
+        # Classification Report
+        # ----------------------------------------------------
+
+        classification_report_file = results.get(
+            "classification_report_file"
+        )
+
+        print(
+            f"Classification report: "
+            f"{classification_report_file}"
+        )
+
+        if classification_report_file:
+
+            print(
+                f"Exists: "
+                f"{os.path.exists(classification_report_file)}"
+            )
+
             if os.path.exists(
-                results["classification_report_file"]
+                classification_report_file
             ):
+
                 mlflow.log_artifact(
-                    results["classification_report_file"],
+                    classification_report_file,
                     artifact_path="reports"
                 )
 
-        if "confusion_matrix_file" in results:
+                print(
+                    "Classification report "
+                    "logged successfully."
+                )
+
+            else:
+
+                print(
+                    "WARNING: Classification report "
+                    "does not exist."
+                )
+
+
+        # ----------------------------------------------------
+        # Confusion Matrix
+        # ----------------------------------------------------
+
+        confusion_matrix_file = results.get(
+            "confusion_matrix_file"
+        )
+
+        print(
+            f"Confusion matrix: "
+            f"{confusion_matrix_file}"
+        )
+
+        if confusion_matrix_file:
+
+            print(
+                f"Exists: "
+                f"{os.path.exists(confusion_matrix_file)}"
+            )
+
             if os.path.exists(
-                results["confusion_matrix_file"]
+                confusion_matrix_file
             ):
+
                 mlflow.log_artifact(
-                    results["confusion_matrix_file"],
+                    confusion_matrix_file,
                     artifact_path="plots"
                 )
 
-        if "plots" in results:
+                print(
+                    "Confusion matrix "
+                    "logged successfully."
+                )
 
-            for plot in results["plots"]:
+            else:
 
-                if os.path.exists(plot):
+                print(
+                    "WARNING: Confusion matrix "
+                    "does not exist."
+                )
 
-                    mlflow.log_artifact(
-                        plot,
-                        artifact_path="plots"
-                    )
+
+        # ----------------------------------------------------
+        # Other Plots
+        # ----------------------------------------------------
+
+        plots = results.get(
+            "plots",
+            []
+        )
+
+        print(
+            f"Plots: {plots}"
+        )
+
+        for plot in plots:
+
+            print(
+                f"Checking plot: {plot}"
+            )
+
+            if os.path.exists(plot):
+
+                mlflow.log_artifact(
+                    plot,
+                    artifact_path="plots"
+                )
+
+                print(
+                    f"Successfully logged: "
+                    f"{plot}"
+                )
+
+            else:
+
+                print(
+                    f"WARNING: File does not exist: "
+                    f"{plot}"
+                )
+
+
+        print(
+            "All artifacts processed successfully."
+        )
 
 
         # ====================================================
         # REGISTER MODEL
         # ====================================================
 
-        print("\nRegistering model with MLflow...")
+        print(
+            "\nRegistering model with MLflow..."
+        )
 
         model_info = register_model(
             model
         )
 
-        print("\nModel registered successfully.")
+        print(
+            "\nModel registered successfully."
+        )
 
         print(
             f"Model URI: "
@@ -250,18 +402,38 @@ def main():
         # DISPLAY RUN INFORMATION
         # ====================================================
 
-        run_id = mlflow.active_run().info.run_id
+        print(
+            "\n" + "=" * 60
+        )
 
-        print("\n" + "=" * 60)
-        print("MLFLOW RUN COMPLETED")
-        print("=" * 60)
+        print(
+            "MLFLOW RUN COMPLETED"
+        )
 
-        print(f"Experiment: Wine_Quality_Predictions")
-        print(f"Run ID: {run_id}")
-        print(f"Model: WineQualityModel")
-        print(f"Accuracy: {accuracy:.4f}")
+        print(
+            "=" * 60
+        )
 
-        print("=" * 60)
+        print(
+            f"Experiment: "
+            f"Wine_Quality_Predictions"
+        )
+
+        print(
+            f"Run ID: {run_id}"
+        )
+
+        print(
+            f"Model: WineQualityModel"
+        )
+
+        print(
+            f"Accuracy: {accuracy:.4f}"
+        )
+
+        print(
+            "=" * 60
+        )
 
 
 # ============================================================
