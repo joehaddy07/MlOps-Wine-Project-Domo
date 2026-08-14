@@ -1,8 +1,7 @@
 # ============================================================
-# MLFLOW TRACKING CONFIGURATION
+# MLFLOW TRACKING
 # ============================================================
 
-import os
 import mlflow
 import mlflow.sklearn
 
@@ -11,10 +10,7 @@ import mlflow.sklearn
 # CONFIGURATION
 # ============================================================
 
-MLFLOW_TRACKING_URI = os.getenv(
-    "MLFLOW_TRACKING_URI",
-    "http://localhost:5000"
-)
+MLFLOW_TRACKING_URI = "http://localhost:5000"
 
 EXPERIMENT_NAME = "Wine_Quality_Predictions"
 
@@ -28,12 +24,6 @@ MODEL_NAME = "WineQualityModel"
 def configure_mlflow():
     """
     Configure MLflow to use the MLflow Tracking Server.
-
-    IMPORTANT:
-    The training machine / GitHub Actions runner communicates
-    with the MLflow server over HTTP.
-
-    It should NOT use ./mlruns or /mlflow as its tracking store.
     """
 
     print()
@@ -47,7 +37,7 @@ def configure_mlflow():
     )
 
     # --------------------------------------------------------
-    # Set MLflow Tracking Server
+    # Set tracking server
     # --------------------------------------------------------
 
     mlflow.set_tracking_uri(
@@ -58,15 +48,27 @@ def configure_mlflow():
     # Verify tracking URI
     # --------------------------------------------------------
 
-    tracking_uri = mlflow.get_tracking_uri()
+    active_uri = mlflow.get_tracking_uri()
 
     print(
         f"Active MLflow Tracking URI: "
-        f"{tracking_uri}"
+        f"{active_uri}"
     )
 
     # --------------------------------------------------------
-    # Set experiment
+    # Safety check
+    # --------------------------------------------------------
+
+    if not active_uri.startswith("http://") and not active_uri.startswith("https://"):
+
+        raise RuntimeError(
+            "MLflow is NOT configured to use the "
+            "MLflow Tracking Server. "
+            f"Current URI: {active_uri}"
+        )
+
+    # --------------------------------------------------------
+    # Configure experiment
     # --------------------------------------------------------
 
     print(
@@ -91,8 +93,13 @@ def configure_mlflow():
 
 def log_dataset_information(wine_dataset):
     """
-    Log basic dataset information to MLflow.
+    Log dataset information to MLflow.
     """
+
+    mlflow.log_param(
+        "dataset_name",
+        "wine.csv"
+    )
 
     mlflow.log_param(
         "dataset_rows",
@@ -102,11 +109,6 @@ def log_dataset_information(wine_dataset):
     mlflow.log_param(
         "dataset_columns",
         wine_dataset.shape[1]
-    )
-
-    mlflow.log_param(
-        "dataset_name",
-        "wine.csv"
     )
 
     mlflow.log_param(
@@ -125,7 +127,7 @@ def log_training_parameters(
     n_estimators
 ):
     """
-    Log machine learning training parameters.
+    Log training parameters.
     """
 
     mlflow.log_param(
@@ -150,12 +152,12 @@ def log_training_parameters(
 
 
 # ============================================================
-# LOG MODEL METRICS
+# LOG METRICS
 # ============================================================
 
 def log_metrics(accuracy):
     """
-    Log model evaluation metrics.
+    Log model metrics.
     """
 
     mlflow.log_metric(
@@ -170,14 +172,11 @@ def log_metrics(accuracy):
 
 def register_model(model):
     """
-    Log the trained sklearn model to MLflow and register it
-    in the MLflow Model Registry.
+    Log and register the trained model.
     """
 
     print()
-    print(
-        "Logging model to MLflow..."
-    )
+    print("Logging model to MLflow...")
 
     model_info = mlflow.sklearn.log_model(
         sk_model=model,
