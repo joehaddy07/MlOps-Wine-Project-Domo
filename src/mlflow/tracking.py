@@ -1,37 +1,44 @@
-# ============================================================
-# IMPORT LIBRARIES
-# ============================================================
-
+import os
 import mlflow
 import mlflow.sklearn
 
-# ============================================================
-# MLFLOW CONFIGURATION
-# ============================================================
+MLFLOW_TRACKING_URI = os.getenv(
+    "MLFLOW_TRACKING_URI",
+    "http://localhost:5000"
+)
 
-TRACKING_URI = "http://localhost:5000"
+MLFLOW_EXPERIMENT_NAME = "Wine_Quality_Predictions"
 
-EXPERIMENT_NAME = "Wine_Quality_Predictions"
-
-REGISTERED_MODEL_NAME = "WineQualityModel"
-
-# ============================================================
-# CONFIGURE MLFLOW
-# ============================================================
+MODEL_NAME = "WineQualityModel"
 
 def configure_mlflow():
-    """
-    Configure the MLflow Tracking Server.
-    """
 
-    mlflow.set_tracking_uri(TRACKING_URI)
+    # --------------------------------------------------------
+    # Configure MLflow Tracking Server
+    # --------------------------------------------------------
 
-    mlflow.set_experiment(EXPERIMENT_NAME)
+    mlflow.set_tracking_uri(
+        MLFLOW_TRACKING_URI
+    )
 
+    # --------------------------------------------------------
+    # Create or select experiment
+    # --------------------------------------------------------
 
-# ============================================================
-# LOG DATASET INFORMATION
-# ============================================================
+    mlflow.set_experiment(
+        MLFLOW_EXPERIMENT_NAME
+    )
+
+    print(
+        f"MLflow Tracking URI: "
+        f"{mlflow.get_tracking_uri()}"
+    )
+
+    print(
+        f"MLflow Experiment: "
+        f"{MLFLOW_EXPERIMENT_NAME}"
+    )
+
 
 def log_dataset_information(wine_dataset):
 
@@ -45,10 +52,10 @@ def log_dataset_information(wine_dataset):
         wine_dataset.shape[1]
     )
 
-
-# ============================================================
-# LOG TRAINING PARAMETERS
-# ============================================================
+    mlflow.log_param(
+        "target_column",
+        "quality"
+    )
 
 def log_training_parameters(
     test_size,
@@ -71,72 +78,19 @@ def log_training_parameters(
         n_estimators
     )
 
-    mlflow.log_param(
-        "model_type",
-        "RandomForestClassifier"
-    )
-
-
-# ============================================================
-# LOG MODEL METRICS
-# ============================================================
-
 def log_metrics(accuracy):
 
     mlflow.log_metric(
-        "wine_accuracy",
+        "accuracy",
         accuracy
     )
-
-
-# ============================================================
-# LOG ARTIFACTS
-# ============================================================
-
-def log_artifacts(results):
-
-    mlflow.log_artifact(
-        "wine_dataset_logged.csv",
-        artifact_path="datasets"
-    )
-
-    mlflow.log_artifact(
-        results["classification_report_file"],
-        artifact_path="reports"
-    )
-
-    mlflow.log_artifact(
-        results["confusion_matrix_file"],
-        artifact_path="plots"
-    )
-
-    for plot in results["plots"]:
-
-        mlflow.log_artifact(
-            plot,
-            artifact_path="plots"
-        )
-
-
-# ============================================================
-# REGISTER MODEL
-# ============================================================
 
 def register_model(model):
 
     model_info = mlflow.sklearn.log_model(
-
         sk_model=model,
-
-        artifact_path="wine_model",
-
-        registered_model_name=REGISTERED_MODEL_NAME
+        name="wine_quality_model",
+        registered_model_name=MODEL_NAME
     )
-
-    print("\nRegistered Model URI")
-
-    print("---------------------------")
-
-    print(model_info.model_uri)
 
     return model_info
