@@ -1,17 +1,25 @@
-mlflow==3.14.0
+--extra-index-url https://download.pytorch.org/whl/cpu
 
+# Core ML & Data Processing
 numpy==1.26.4
-pandas==2.3.2
-scikit-learn==1.8.0
-scipy==1.17.0
+pandas>=2.2.0,<3.0.0
+scikit-learn>=1.5.0,<1.7.0
+scipy>=1.13.0,<1.16.0
 
-matplotlib==3.10.6
+# Tracking & Utility
+mlflow==3.14.0
+pyarrow>=18.0.0
+psutil>=6.0.0
+dill>=0.3.8
+tqdm>=4.66.0
+joblib>=1.4.0
+
+# Visualization
+matplotlib>=3.8.0
 seaborn==0.13.2
 
-pyarrow==23.0.0
-psutil==7.2.2
-dill==0.4.0
-tqdm==4.67.1
+# Testing
+pytest>=8.0.0
 
-pytest==8.4.1
-joblib==1.5.2
+# Explicit CPU-only Torch guard (prevents 2.5GB CUDA download)
+torch --extra-index-url https://download.pytorch.org/whl/cpu
