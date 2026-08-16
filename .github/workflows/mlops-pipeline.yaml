@@ -1,4 +1,3 @@
-
 # ==========================================================
 # MLOps Wine CI/CD Pipeline
 #
@@ -153,7 +152,7 @@ jobs:
 
           python -m pip install --upgrade pip
 
-          pip install -r requirements.txt
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
 
       # ======================================================
@@ -552,7 +551,9 @@ jobs:
 
           helm upgrade --install \
             ${{ env.HELM_RELEASE }} \
-            ${{ env.HELM_CHART }}
+            ${{ env.HELM_CHART }} \
+            --set image.repository=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }} \
+            --set image.tag=${{ env.IMAGE_TAG }}
 
 
       # ======================================================
@@ -715,4 +716,3 @@ jobs:
 
           echo "Kubernetes Context:"
           kubectl config current-context
-
