@@ -1,18 +1,22 @@
-mlflow==3.14.0
+# Use an official Python base image
+FROM python:3.12-slim
 
-numpy==1.26.4
-pandas>=2.2.0
-pyarrow>=18.0.0
+# Set the working directory inside the container
+WORKDIR /app
 
-scikit-learn>=1.5.0
-scipy>=1.13.0
+# Copy only requirements first (for Docker layer caching)
+COPY requirements.txt .
 
-matplotlib>=3.8.0
-seaborn==0.13.2
+# Install dependencies using CPU index to force lightweight PyTorch wheels
+RUN pip install --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    -r requirements.txt
 
-psutil>=6.0.0
-dill>=0.3.8
-tqdm>=4.66.0
-joblib>=1.4.0
+# Copy the rest of the application code
+COPY . .
 
-pytest>=8.0.0
+# Expose Streamlit's default port
+EXPOSE 8501
+
+# Run Streamlit when the container starts
+CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0"]
