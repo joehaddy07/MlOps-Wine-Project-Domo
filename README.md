@@ -75,5 +75,3 @@ wine-quality-mlops/
 ├── README.md
 │
 └── .gitignore
-
-#workflow
