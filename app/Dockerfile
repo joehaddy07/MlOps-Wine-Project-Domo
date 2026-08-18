@@ -4,16 +4,16 @@ FROM python:3.12-slim
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy only requirements first (for Docker layer caching)
-COPY requirements.txt .
+# Copy only the app's requirements first (for Docker layer caching)
+COPY app/requirements.txt .
 
 # Install dependencies using CPU index to force lightweight PyTorch wheels
 RUN pip install --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cpu \
     -r requirements.txt
 
-# Copy the rest of the application code
-COPY . .
+# Copy only the app directory's code into the image
+COPY app/ .
 
 # Expose Streamlit's default port
 EXPOSE 8501
