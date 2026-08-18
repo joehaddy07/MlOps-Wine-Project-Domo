@@ -18,5 +18,5 @@ COPY . .
 # Expose Streamlit's default port
 EXPOSE 8501
 
-# Run Streamlit when the container starts
-CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0"]
+# Run Streamlit using python -m to guarantee PATH resolution
+CMD ["python", "-m", "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
