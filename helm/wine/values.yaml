@@ -4,8 +4,8 @@ app:
   name: wine-app
 
 image:
-  repository: joehaddy/wine-quality-image
-  tag: "v1.0.0" #tag latest
+  repository: joehaddy/wine-streamlit-app
+  tag: "latest"
   pullPolicy: IfNotPresent
 
 container:
@@ -21,6 +21,7 @@ resources:
   requests:
     cpu: "100m"
     memory: "128Mi"
+
   limits:
     cpu: "500m"
     memory: "512Mi"

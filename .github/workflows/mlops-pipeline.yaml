@@ -27,7 +27,7 @@
 # Login to Docker Hub
 #       │
 #       ▼
-# Build Docker Image (Tagged with Git Commit SHA)
+# Build Docker Image with Git SHA
 #       │
 #       ▼
 # Push Docker Image to Docker Hub
@@ -39,16 +39,20 @@
 # Configure kubectl
 #       │
 #       ▼
-# Load Docker Image into joe-cluster
+# Load Exact Image into Kind
 #       │
 #       ▼
-# Deploy with Helm (pullPolicy=Always)
+# Deploy with Helm
 #       │
 #       ▼
-# Wait for Deployment
+# Verify Deployed Image
 #       │
 #       ▼
-# Verify Kubernetes Resources
+# Wait for Rolling Deployment
+#       │
+#       ├── SUCCESS → Verify Kubernetes
+#       │
+#       └── FAILURE → Collect Kubernetes Diagnostics
 # ==========================================================
 
 name: MLOps Wine CI/CD Pipeline
@@ -69,22 +73,23 @@ on:
 # ==========================================================
 
 env:
+
   # Python version
   PYTHON_VERSION: "3.12"
 
   # Docker image name
   IMAGE_NAME: wine-streamlit-app
 
-  # Dynamic Docker image tag using Git Commit SHA
+  # Git commit SHA = immutable image version
   IMAGE_TAG: ${{ github.sha }}
 
-  # Helm release name
+  # Helm release
   HELM_RELEASE: wine-app
 
-  # Helm chart location
+  # Helm chart
   HELM_CHART: ./helm/wine
 
-  # Kind cluster name
+  # Kind cluster
   KIND_CLUSTER: joe-cluster
 
 
@@ -94,234 +99,724 @@ env:
 
 jobs:
 
+
   # ========================================================
-  # JOB 1: Build, Test, Train, Track, & Docker Build
+  # JOB 1
+  # Build
+  # Test
+  # Train
+  # MLflow
+  # Docker Build
+  # Docker Push
   # ========================================================
 
   build-train:
+
     runs-on: self-hosted
 
     steps:
 
-      # STEP 1: Checkout Repository
+      # ------------------------------------------------------
+      # STEP 1: Checkout
+      # ------------------------------------------------------
+
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+
+      # ------------------------------------------------------
       # STEP 2: Setup Python
+      # ------------------------------------------------------
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      # STEP 3: Install Python Dependencies
+
+      # ------------------------------------------------------
+      # STEP 3: Install Dependencies
+      # ------------------------------------------------------
+
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
+          pip install \
+            --extra-index-url https://download.pytorch.org/whl/cpu \
+            -r requirements.txt
+
+
+      # ------------------------------------------------------
       # STEP 4: Run Unit Tests
+      # ------------------------------------------------------
+
       - name: Run Unit Tests
         run: |
+          echo "======================================"
+          echo "Running Unit Tests"
+          echo "======================================"
+
           pytest
 
-      # STEP 5: Train Model + Track with MLflow
+
+      # ------------------------------------------------------
+      # STEP 5: Train Model + MLflow
+      # ------------------------------------------------------
+
       - name: Train and Track Model with MLflow
         env:
           MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+
         run: |
+
           echo "======================================"
           echo "Training Machine Learning Model"
           echo "======================================"
+
           echo ""
           echo "MLflow Tracking Server:"
           echo "${MLFLOW_TRACKING_URI}"
           echo ""
+
           python -m src.main
 
-      # STEP 6: Verify MLflow Execution
+
+      # ------------------------------------------------------
+      # STEP 6: Verify MLflow
+      # ------------------------------------------------------
+
       - name: Verify MLflow Execution
         run: |
+
           echo "======================================"
           echo "MLflow Training Completed"
           echo "======================================"
-          echo "The MLflow experiment and model registration"
-          echo "are handled by src/main.py."
 
-      # STEP 7: Login to Docker Hub
+          echo "The MLflow experiment and model"
+          echo "registration are handled by src/main.py."
+
+
+      # ------------------------------------------------------
+      # STEP 7: Docker Hub Login
+      # ------------------------------------------------------
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
+
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+
+      # ------------------------------------------------------
       # STEP 8: Build Docker Image
+      # ------------------------------------------------------
+
       - name: Build Docker Image
         run: |
+
+          echo "======================================"
+          echo "Building Docker Image"
+          echo "======================================"
+
+          echo "Image:"
+          echo "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+
           docker build \
             -f app/Dockerfile \
-            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            .
 
+
+      # ------------------------------------------------------
       # STEP 9: Push Docker Image
+      # ------------------------------------------------------
+
       - name: Push Docker Image
         run: |
+
+          echo "======================================"
+          echo "Pushing Docker Image"
+          echo "======================================"
+
           docker push \
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
 
+      # ------------------------------------------------------
+      # STEP 10: Verify Docker Image
+      # ------------------------------------------------------
+
+      - name: Verify Docker Image
+        run: |
+
+          echo "======================================"
+          echo "Docker Image Verification"
+          echo "======================================"
+
+          docker image inspect \
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+          echo ""
+          echo "Image successfully built."
+
+
   # ========================================================
-  # JOB 2: Kubernetes Deployment with Helm
+  # JOB 2
+  # Kubernetes + Helm Deployment
   # ========================================================
 
   deploy:
+
     needs: build-train
+
     runs-on: self-hosted
 
     steps:
 
-      # STEP 10: Checkout Repository
+
+      # ------------------------------------------------------
+      # STEP 11: Checkout Repository
+      # ------------------------------------------------------
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # STEP 11: Verify Docker
+
+      # ------------------------------------------------------
+      # STEP 12: Verify Docker
+      # ------------------------------------------------------
+
       - name: Verify Docker
         run: |
+
           echo "======================================"
           echo "Docker Version"
           echo "======================================"
+
           docker version
 
-      # STEP 12: Verify Kind
+
+      # ------------------------------------------------------
+      # STEP 13: Verify Kind
+      # ------------------------------------------------------
+
       - name: Verify Kind
         run: |
+
           echo "======================================"
-          echo "Kind Version & Available Clusters"
+          echo "Kind Version"
           echo "======================================"
+
           kind version
+
           echo ""
+          echo "Available Kind Clusters:"
+
           kind get clusters
 
-      # STEP 13: Verify joe-cluster
+
+      # ------------------------------------------------------
+      # STEP 14: Verify joe-cluster
+      # ------------------------------------------------------
+
       - name: Verify joe-cluster
         run: |
+
           echo "======================================"
-          echo "Checking joe-cluster..."
+          echo "Checking Kind Cluster"
           echo "======================================"
+
           kind get clusters | grep -x "${{ env.KIND_CLUSTER }}"
+
           echo "joe-cluster exists."
 
-      # STEP 14: Configure kubectl
+
+      # ------------------------------------------------------
+      # STEP 15: Configure kubectl
+      # ------------------------------------------------------
+
       - name: Configure kubectl for joe-cluster
         run: |
+
           echo "======================================"
           echo "Configuring kubectl"
           echo "======================================"
-          kind export kubeconfig --name ${{ env.KIND_CLUSTER }}
-          echo ""
-          echo "Switching to joe-cluster context..."
-          kubectl config use-context kind-${{ env.KIND_CLUSTER }}
 
-      # STEP 15: Verify Kubernetes Cluster
+          kind export kubeconfig \
+            --name ${{ env.KIND_CLUSTER }}
+
+          kubectl config use-context \
+            kind-${{ env.KIND_CLUSTER }}
+
+
+      # ------------------------------------------------------
+      # STEP 16: Verify Kubernetes
+      # ------------------------------------------------------
+
       - name: Verify Kubernetes Cluster
         run: |
+
           echo "======================================"
-          echo "Kubernetes Nodes & Info"
+          echo "Kubernetes Cluster"
           echo "======================================"
+
           kubectl config current-context
+
+          echo ""
+
           kubectl get nodes -o wide
+
+          echo ""
+
           kubectl cluster-info
 
-      # STEP 16: Load Docker Image into joe-cluster
+
+      # ------------------------------------------------------
+      # STEP 17: Load Exact Git SHA Image into Kind
+      # ------------------------------------------------------
+
       - name: Load Image into joe-cluster
         run: |
+
           echo "======================================"
-          echo "Loading Docker Image into Kind Cluster"
+          echo "Loading Exact Image into Kind"
           echo "======================================"
+
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+
+          echo "Image:"
+          echo "$IMAGE"
+
           kind load docker-image \
             --name ${{ env.KIND_CLUSTER }} \
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            "$IMAGE"
 
-      # STEP 17: Verify Docker Image Tag
-      - name: Verify Docker Image Target
+
+      # ------------------------------------------------------
+      # STEP 18: Verify Image Inside Kind
+      # ------------------------------------------------------
+
+      - name: Verify Image in Kind
         run: |
-          echo "======================================"
-          echo "Target Docker Image:"
-          echo "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
 
-      # STEP 18: Verify Helm
+          echo "======================================"
+          echo "Verifying Image Inside Kind"
+          echo "======================================"
+
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+
+          docker exec \
+            ${{ env.KIND_CLUSTER }}-control-plane \
+            crictl images | grep "${{ env.IMAGE_NAME }}" || true
+
+          echo ""
+          echo "Expected image:"
+          echo "$IMAGE"
+
+
+      # ------------------------------------------------------
+      # STEP 19: Verify Helm
+      # ------------------------------------------------------
+
       - name: Verify Helm
         run: |
+
           echo "======================================"
           echo "Helm Version"
           echo "======================================"
+
           helm version
 
-      # STEP 19: Deploy Application with Helm (Forces Always Pull & Git SHA Tag)
+
+      # ------------------------------------------------------
+      # STEP 20: Helm Lint
+      # ------------------------------------------------------
+
+      - name: Helm Lint
+        run: |
+
+          echo "======================================"
+          echo "Helm Lint"
+          echo "======================================"
+
+          helm lint ${{ env.HELM_CHART }}
+
+
+      # ------------------------------------------------------
+      # STEP 21: Deploy with Helm
+      # ------------------------------------------------------
+
       - name: Deploy Application with Helm
         run: |
+
+          echo "======================================"
+          echo "Deploying Application"
+          echo "======================================"
+
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}"
+
+          echo "Repository:"
+          echo "$IMAGE"
+
+          echo "Tag:"
+          echo "${{ env.IMAGE_TAG }}"
+
           helm upgrade --install \
             ${{ env.HELM_RELEASE }} \
             ${{ env.HELM_CHART }} \
-            --set image.repository=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }} \
-            --set image.tag=${{ env.IMAGE_TAG }} \
+            --set image.repository="$IMAGE" \
+            --set image.tag="${{ env.IMAGE_TAG }}" \
             --set image.pullPolicy=IfNotPresent \
-            --set replicaCount=3
+            --set replicaCount=3 \
+            --wait=false
 
-      # STEP 20: Wait for Deployment Rollout
+
+      # ------------------------------------------------------
+      # STEP 22: Verify Deployed Image
+      # ------------------------------------------------------
+
+      - name: Verify Deployed Image
+        run: |
+
+          echo "======================================"
+          echo "Verifying Kubernetes Image"
+          echo "======================================"
+
+          DEPLOYED_IMAGE=$(kubectl get deployment wine-app \
+            -o jsonpath='{.spec.template.spec.containers[0].image}')
+
+          EXPECTED_IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+
+          echo "Expected:"
+          echo "$EXPECTED_IMAGE"
+
+          echo ""
+
+          echo "Deployed:"
+          echo "$DEPLOYED_IMAGE"
+
+          echo ""
+
+          if [ "$DEPLOYED_IMAGE" != "$EXPECTED_IMAGE" ]; then
+            echo "ERROR: Kubernetes is running the wrong image."
+            exit 1
+          fi
+
+          echo "Correct image is deployed."
+
+
+      # ------------------------------------------------------
+      # STEP 23: Show Rollout Status
+      # ------------------------------------------------------
+
+      - name: Show Rollout Status
+        run: |
+
+          echo "======================================"
+          echo "Current Rollout Status"
+          echo "======================================"
+
+          kubectl rollout status \
+            deployment/wine-app \
+            --timeout=10s || true
+
+
+      # ------------------------------------------------------
+      # STEP 24: Wait for Deployment
+      # ------------------------------------------------------
+
       - name: Wait for Deployment
         run: |
+
+          echo "======================================"
+          echo "Waiting for Kubernetes Rollout"
+          echo "======================================"
+
           kubectl rollout status \
             deployment/wine-app \
             --timeout=300s
 
-      # STEP 21: Verify Pods
+
+      # ------------------------------------------------------
+      # STEP 25: Verify Pods
+      # ------------------------------------------------------
+
       - name: Verify Pods
         run: |
+
           echo "======================================"
           echo "Pods Status"
           echo "======================================"
-          kubectl get pods -o wide
 
-      # STEP 22: Verify Services
+          kubectl get pods \
+            -o wide
+
+
+      # ------------------------------------------------------
+      # STEP 26: Verify Services
+      # ------------------------------------------------------
+
       - name: Verify Services
         run: |
+
           echo "======================================"
           echo "Services Status"
           echo "======================================"
+
           kubectl get svc
 
-      # STEP 23: Verify Deployments
+
+      # ------------------------------------------------------
+      # STEP 27: Verify Deployments
+      # ------------------------------------------------------
+
       - name: Verify Deployments
         run: |
+
           echo "======================================"
-          echo "Deployments Status"
+          echo "Deployment Status"
           echo "======================================"
+
           kubectl get deployments
 
-      # STEP 24: Describe Deployment
+
+      # ------------------------------------------------------
+      # STEP 28: Describe Deployment
+      # ------------------------------------------------------
+
       - name: Describe Deployment
         run: |
+
+          echo "======================================"
+          echo "Deployment Description"
+          echo "======================================"
+
           kubectl describe deployment wine-app
 
-      # STEP 25: Final Verification
+
+      # ======================================================
+      # FAILURE DIAGNOSTICS
+      #
+      # These steps execute ONLY if something above fails.
+      # ======================================================
+
+
+      # ------------------------------------------------------
+      # STEP 29: Debug Pods
+      # ------------------------------------------------------
+
+      - name: DEBUG - Kubernetes Pods
+        if: failure()
+        run: |
+
+          echo "======================================"
+          echo "DEBUG: PODS"
+          echo "======================================"
+
+          kubectl get pods \
+            -o wide
+
+
+      # ------------------------------------------------------
+      # STEP 30: Debug ReplicaSets
+      # ------------------------------------------------------
+
+      - name: DEBUG - ReplicaSets
+        if: failure()
+        run: |
+
+          echo "======================================"
+          echo "DEBUG: REPLICASETS"
+          echo "======================================"
+
+          kubectl get replicasets \
+            -o wide
+
+
+      # ------------------------------------------------------
+      # STEP 31: Debug Deployment
+      # ------------------------------------------------------
+
+      - name: DEBUG - Deployment
+        if: failure()
+        run: |
+
+          echo "======================================"
+          echo "DEBUG: DEPLOYMENT"
+          echo "======================================"
+
+          kubectl describe deployment wine-app
+
+
+      # ------------------------------------------------------
+      # STEP 32: Debug Pods
+      # ------------------------------------------------------
+
+      - name: DEBUG - Describe Pods
+        if: failure()
+        run: |
+
+          echo "======================================"
+          echo "DEBUG: POD DESCRIPTIONS"
+          echo "======================================"
+
+          kubectl describe pods \
+            -l app=wine-app
+
+
+      # ------------------------------------------------------
+      # STEP 33: Debug Events
+      # ------------------------------------------------------
+
+      - name: DEBUG - Kubernetes Events
+        if: failure()
+        run: |
+
+          echo "======================================"
+          echo "DEBUG: KUBERNETES EVENTS"
+          echo "======================================"
+
+          kubectl get events \
+            --sort-by=.lastTimestamp
+
+
+      # ------------------------------------------------------
+      # STEP 34: Debug Logs
+      # ------------------------------------------------------
+
+      - name: DEBUG - Application Logs
+        if: failure()
+        run: |
+
+          echo "======================================"
+          echo "DEBUG: APPLICATION LOGS"
+          echo "======================================"
+
+          kubectl logs \
+            -l app=wine-app \
+            --all-containers=true \
+            --tail=200 \
+            --prefix=true || true
+
+
+      # ------------------------------------------------------
+      # STEP 35: Previous Container Logs
+      # ------------------------------------------------------
+
+      - name: DEBUG - Previous Container Logs
+        if: failure()
+        run: |
+
+          echo "======================================"
+          echo "DEBUG: PREVIOUS CONTAINER LOGS"
+          echo "======================================"
+
+          for POD in $(kubectl get pods \
+            -l app=wine-app \
+            -o jsonpath='{.items[*].metadata.name}'); do
+
+            echo ""
+            echo "======================================"
+            echo "Pod: $POD"
+            echo "======================================"
+
+            kubectl logs "$POD" \
+              --previous \
+              --all-containers=true \
+              --tail=200 || true
+
+          done
+
+
+      # ------------------------------------------------------
+      # STEP 36: Final Kubernetes State
+      # ------------------------------------------------------
+
+      - name: DEBUG - Final Kubernetes State
+        if: failure()
+        run: |
+
+          echo "======================================"
+          echo "FINAL KUBERNETES STATE"
+          echo "======================================"
+
+          kubectl get all -l app=wine-app
+
+          echo ""
+
+          kubectl get deployment wine-app \
+            -o yaml
+
+
+      # ------------------------------------------------------
+      # STEP 37: Final Verification
+      # ------------------------------------------------------
+
       - name: Final Kubernetes Verification
         run: |
+
           echo "======================================"
           echo "FINAL KUBERNETES VERIFICATION"
           echo "======================================"
-          echo "Cluster: ${{ env.KIND_CLUSTER }}"
-          echo "Context: $(kubectl config current-context)"
+
+          echo "Cluster:"
+          echo "${{ env.KIND_CLUSTER }}"
+
           echo ""
+
+          echo "Context:"
+          kubectl config current-context
+
+          echo ""
+
           kubectl get nodes
+
+          echo ""
+
           kubectl get pods
+
+          echo ""
+
           kubectl get svc
+
+          echo ""
+
           kubectl get deployments
 
-      # STEP 26: Completion Summary
+
+      # ------------------------------------------------------
+      # STEP 38: Completion Summary
+      # ------------------------------------------------------
+
       - name: Pipeline Completed Successfully
+        if: success()
         run: |
+
           echo "======================================"
           echo "MLOps Pipeline Completed Successfully"
           echo "======================================"
-          echo "Docker Image: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
-          echo "Kind Cluster: ${{ env.KIND_CLUSTER }}"
-          echo "Helm Release: ${{ env.HELM_RELEASE }}"
+
+          echo "Docker Image:"
+          echo "${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+
+          echo ""
+
+          echo "Kind Cluster:"
+          echo "${{ env.KIND_CLUSTER }}"
+
+          echo ""
+
+          echo "Helm Release:"
+          echo "${{ env.HELM_RELEASE }}"
+
+          echo ""
+
+          echo "Deployment:"
+          echo "wine-app"
+
+          echo ""
+
+          echo "Rollout:"
+          echo "SUCCESS"
