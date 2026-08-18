@@ -263,7 +263,8 @@ jobs:
             ${{ env.HELM_CHART }} \
             --set image.repository=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }} \
             --set image.tag=${{ env.IMAGE_TAG }} \
-            --set image.pullPolicy=IfNotPresent
+            --set image.pullPolicy=IfNotPresent \
+            --set replicaCount=3
 
       # STEP 20: Wait for Deployment Rollout
       - name: Wait for Deployment
