@@ -263,14 +263,14 @@ jobs:
             ${{ env.HELM_CHART }} \
             --set image.repository=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }} \
             --set image.tag=${{ env.IMAGE_TAG }} \
-            --set image.pullPolicy=Always
+            --set image.pullPolicy=IfNotPresent
 
       # STEP 20: Wait for Deployment Rollout
       - name: Wait for Deployment
         run: |
           kubectl rollout status \
             deployment/wine-app \
-            --timeout=180s
+            --timeout=300s
 
       # STEP 21: Verify Pods
       - name: Verify Pods

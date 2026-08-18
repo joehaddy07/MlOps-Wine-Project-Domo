@@ -6,7 +6,7 @@ app:
 image:
   repository: joehaddy/wine-quality-image
   tag: "v1.0.0" #tag latest
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 container:
   name: wine-container
