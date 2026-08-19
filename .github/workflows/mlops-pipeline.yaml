@@ -30,6 +30,9 @@
 # Build Docker Image with Git SHA
 #       │
 #       ▼
+# Scan Image with Trivy
+#       │
+#       ▼
 # Push Docker Image to Docker Hub
 #       │
 #       ▼
@@ -107,6 +110,7 @@ jobs:
   # Train
   # MLflow
   # Docker Build
+  # Trivy Vulnerability Scan
   # Docker Push
   # ========================================================
 
@@ -230,7 +234,22 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 9: Push Docker Image
+      # STEP 9: Scan Docker Image with Trivy
+      # ------------------------------------------------------
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}'
+          format: 'table'
+          exit-code: '0' # Set to '1' to fail pipeline when critical CVEs are found
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+
+
+      # ------------------------------------------------------
+      # STEP 10: Push Docker Image
       # ------------------------------------------------------
 
       - name: Push Docker Image
@@ -245,7 +264,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 10: Verify Docker Image
+      # STEP 11: Verify Docker Image
       # ------------------------------------------------------
 
       - name: Verify Docker Image
@@ -259,7 +278,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
 
           echo ""
-          echo "Image successfully built."
+          echo "Image successfully built and verified."
 
 
   # ========================================================
@@ -277,7 +296,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 11: Checkout Repository
+      # STEP 12: Checkout Repository
       # ------------------------------------------------------
 
       - name: Checkout Repository
@@ -285,7 +304,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 12: Verify Docker
+      # STEP 13: Verify Docker
       # ------------------------------------------------------
 
       - name: Verify Docker
@@ -299,7 +318,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 13: Verify Kind
+      # STEP 14: Verify Kind
       # ------------------------------------------------------
 
       - name: Verify Kind
@@ -318,7 +337,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 14: Verify joe-cluster
+      # STEP 15: Verify joe-cluster
       # ------------------------------------------------------
 
       - name: Verify joe-cluster
@@ -334,7 +353,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 15: Configure kubectl
+      # STEP 16: Configure kubectl
       # ------------------------------------------------------
 
       - name: Configure kubectl for joe-cluster
@@ -352,7 +371,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 16: Verify Kubernetes
+      # STEP 17: Verify Kubernetes
       # ------------------------------------------------------
 
       - name: Verify Kubernetes Cluster
@@ -374,7 +393,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 17: Load Exact Git SHA Image into Kind
+      # STEP 18: Load Exact Git SHA Image into Kind
       # ------------------------------------------------------
 
       - name: Load Image into joe-cluster
@@ -395,7 +414,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 18: Verify Image Inside Kind
+      # STEP 19: Verify Image Inside Kind
       # ------------------------------------------------------
 
       - name: Verify Image in Kind
@@ -417,7 +436,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 19: Verify Helm
+      # STEP 20: Verify Helm
       # ------------------------------------------------------
 
       - name: Verify Helm
@@ -431,7 +450,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 20: Helm Lint
+      # STEP 21: Helm Lint
       # ------------------------------------------------------
 
       - name: Helm Lint
@@ -445,7 +464,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 21: Deploy with Helm
+      # STEP 22: Deploy with Helm
       # ------------------------------------------------------
 
       - name: Deploy Application with Helm
@@ -474,7 +493,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 22: Verify Deployed Image
+      # STEP 23: Verify Deployed Image
       # ------------------------------------------------------
 
       - name: Verify Deployed Image
@@ -508,7 +527,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 23: Show Rollout Status
+      # STEP 24: Show Rollout Status
       # ------------------------------------------------------
 
       - name: Show Rollout Status
@@ -524,7 +543,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 24: Wait for Deployment
+      # STEP 25: Wait for Deployment
       # ------------------------------------------------------
 
       - name: Wait for Deployment
@@ -540,7 +559,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 25: Verify Pods
+      # STEP 26: Verify Pods
       # ------------------------------------------------------
 
       - name: Verify Pods
@@ -555,7 +574,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 26: Verify Services
+      # STEP 27: Verify Services
       # ------------------------------------------------------
 
       - name: Verify Services
@@ -569,7 +588,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 27: Verify Deployments
+      # STEP 28: Verify Deployments
       # ------------------------------------------------------
 
       - name: Verify Deployments
@@ -583,7 +602,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 28: Describe Deployment
+      # STEP 29: Describe Deployment
       # ------------------------------------------------------
 
       - name: Describe Deployment
@@ -604,7 +623,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 29: Debug Pods
+      # STEP 30: Debug Pods
       # ------------------------------------------------------
 
       - name: DEBUG - Kubernetes Pods
@@ -620,7 +639,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 30: Debug ReplicaSets
+      # STEP 31: Debug ReplicaSets
       # ------------------------------------------------------
 
       - name: DEBUG - ReplicaSets
@@ -636,7 +655,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 31: Debug Deployment
+      # STEP 32: Debug Deployment
       # ------------------------------------------------------
 
       - name: DEBUG - Deployment
@@ -651,7 +670,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 32: Debug Pods
+      # STEP 33: Debug Pods
       # ------------------------------------------------------
 
       - name: DEBUG - Describe Pods
@@ -667,7 +686,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 33: Debug Events
+      # STEP 34: Debug Events
       # ------------------------------------------------------
 
       - name: DEBUG - Kubernetes Events
@@ -683,7 +702,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 34: Debug Logs
+      # STEP 35: Debug Logs
       # ------------------------------------------------------
 
       - name: DEBUG - Application Logs
@@ -702,7 +721,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 35: Previous Container Logs
+      # STEP 36: Previous Container Logs
       # ------------------------------------------------------
 
       - name: DEBUG - Previous Container Logs
@@ -731,7 +750,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 36: Final Kubernetes State
+      # STEP 37: Final Kubernetes State
       # ------------------------------------------------------
 
       - name: DEBUG - Final Kubernetes State
@@ -751,7 +770,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 37: Final Verification
+      # STEP 38: Final Verification
       # ------------------------------------------------------
 
       - name: Final Kubernetes Verification
@@ -787,7 +806,7 @@ jobs:
 
 
       # ------------------------------------------------------
-      # STEP 38: Completion Summary
+      # STEP 39: Completion Summary
       # ------------------------------------------------------
 
       - name: Pipeline Completed Successfully
