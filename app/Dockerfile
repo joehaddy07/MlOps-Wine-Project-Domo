@@ -1,15 +1,22 @@
+# Use an official Python base image
 FROM python:3.12-slim
 
+# Set the working directory inside the container
 WORKDIR /app
 
-COPY app/requirements.txt .
+# Copy only requirements first (for Docker layer caching)
+COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies using CPU index to force lightweight PyTorch wheels
+RUN pip install --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    -r requirements.txt
 
-COPY app/apps.py .
+# Copy the rest of the application code
+COPY . .
 
-COPY app/wine_quality_model.pkl .
-
+# Expose Streamlit's default port
 EXPOSE 8501
 
-CMD ["streamlit", "run", "apps.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Run Streamlit using python -m to guarantee PATH resolution
+CMD ["python", "-m", "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
