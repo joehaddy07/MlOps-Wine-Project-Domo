@@ -1,18 +1,20 @@
-FROM python:3.12-slim
+# Use an official Python base image
+FROM python:3.10-slim
 
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy requirements from root build context
+# Copy only requirements first (for caching)
 COPY requirements.txt .
 
-# Install dependencies into system Python
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy remaining project files
+# Copy the rest of the application code
 COPY . .
 
+# Expose Streamlit's default port
 EXPOSE 8501
 
-# Entrypoint to launch Streamlit
-CMD ["streamlit", "run", "app/app.py", "--server.address=0.0.0.0", "--server.port=8501"]
+# Run Streamlit when the container starts
+CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0"]
