@@ -19,4 +19,4 @@ COPY app/ .
 EXPOSE 8501
 
 # Run Streamlit using python -m to guarantee PATH resolution
-CMD ["python", "-m", "streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+CMD ["python", "-m", "streamlit", "run", "src/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
