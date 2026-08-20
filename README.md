@@ -78,4 +78,6 @@ wine-quality-mlops/
 
 #mlops workflow
 
-#workflow
+Portforwing 
+
+kubectl port-forward svc/wine-app 8501:80
