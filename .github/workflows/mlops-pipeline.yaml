@@ -488,7 +488,7 @@ jobs:
             --set image.repository="$IMAGE" \
             --set image.tag="${{ env.IMAGE_TAG }}" \
             --set image.pullPolicy=IfNotPresent \
-            --set replicaCount=1 \
+            --set replicaCount=3 \
             --wait=false
 
 
